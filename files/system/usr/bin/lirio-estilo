@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# lirio-estilo: cambia el aspecto del escritorio de LirioOS.
+# Uso: lirio-estilo [win11|win10] [claro|oscuro]
+#   win11 -> barra de tareas flotante con iconos centrados
+#   win10 -> barra de tareas clásica con iconos a la izquierda
+estilo="${1:-win11}"
+modo="${2:-claro}"
+layouts=/usr/share/lirioos/layouts
+
+case "$estilo" in win11|win10) ;; *) echo "Uso: lirio-estilo [win11|win10] [claro|oscuro]"; exit 1 ;; esac
+case "$modo" in claro|oscuro) ;; *) echo "Uso: lirio-estilo [win11|win10] [claro|oscuro]"; exit 1 ;; esac
+
+qd="$(command -v qdbus6 || command -v qdbus-qt6 || command -v qdbus || true)"
+kw() { kwriteconfig6 "$@" 2>/dev/null || true; }
+
+# --- Colores y acento lila ---
+if [ "$modo" = "oscuro" ]; then esquema=BreezeDark; else esquema=BreezeLight; fi
+plasma-apply-colorscheme "$esquema" --accent-color "#9b6fd0" >/dev/null 2>&1 \
+  || plasma-apply-colorscheme "$esquema" >/dev/null 2>&1 || true
+
+# --- Iconos, comportamiento tipo Windows ---
+kw --file kdeglobals --group Icons --key Theme Papirus
+kw --file kdeglobals --group KDE --key SingleClick false          # doble clic para abrir
+kw --file kwinrc --group org.kde.kdecoration2 --key ButtonsOnLeft ""
+kw --file kwinrc --group org.kde.kdecoration2 --key ButtonsOnRight "IAX"   # minimizar, maximizar, cerrar
+kw --file kwinrc --group Plugins --key blurEnabled true            # transparencia con desenfoque
+kw --file dolphinrc --group General --key ShowFullPath true        # ruta completa en el explorador
+
+# --- Atajos al estilo Windows ---
+kw --file kglobalshortcutsrc --group services --group org.kde.dolphin.desktop --key _launch "Meta+E"
+kw --file kglobalshortcutsrc --group kwin --key "Show Desktop" "Meta+D,none,Mostrar escritorio"
+
+# --- Fondo de pantalla ---
+fondo=/usr/share/wallpapers/LirioOS/contents/images/3840x2160.svg
+[ -f "$fondo" ] && plasma-apply-wallpaperimage "$fondo" >/dev/null 2>&1 || true
+
+# --- Los .exe se abren con Bottles ---
+xdg-mime default com.usebottles.bottles.desktop \
+  application/x-ms-dos-executable application/x-msdownload application/x-msi >/dev/null 2>&1 || true
+
+# --- Panel / barra de tareas ---
+if [ -n "$qd" ]; then
+  "$qd" org.kde.KWin /KWin reconfigure >/dev/null 2>&1 || true
+  "$qd" org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript \
+    "$(cat "$layouts/$estilo.js")" >/dev/null 2>&1 \
+    || echo "No se pudo aplicar la barra de tareas (¿está plasmashell en marcha?)."
+else
+  echo "No se encontró qdbus; la barra de tareas no se ha cambiado."
+fi
+
+echo "Estilo '$estilo' ($modo) aplicado. Cierra sesión y vuelve a entrar para que todo se refleje."
+exit 0

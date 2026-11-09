@@ -1,0 +1,44 @@
+---
+# LirioOS: un Linux con aspecto de Windows moderno que ejecuta programas .exe
+# Basado en Bazzite (KDE Plasma) mediante BlueBuild / Universal Blue.
+name: lirioos
+description: LirioOS, escritorio tipo Windows moderno sobre Linux, con soporte para .exe mediante Proton/Wine/Bottles
+
+# Imagen base. Elige la que corresponda a tu GPU:
+#   ghcr.io/ublue-os/bazzite          -> AMD / Intel
+#   ghcr.io/ublue-os/bazzite-nvidia   -> NVIDIA (incluye los drivers)
+base-image: ghcr.io/ublue-os/bazzite-nvidia
+image-version: stable
+
+modules:
+  # Copia files/system/ a la raíz del sistema (marca, temas, comandos, autoinicio)
+  - type: files
+    files:
+      - source: system
+        destination: /
+
+  # Paquetes del sistema
+  - type: rpm-ostree
+    install:
+      - kvantum
+      - papirus-icon-theme
+
+  # Aplicaciones Flatpak que se instalan en el primer arranque
+  - type: default-flatpaks
+    notify: true
+    system:
+      install:
+        - com.usebottles.bottles        # ejecutar .exe y gestionar prefijos de Wine
+        - com.heroicgameslauncher.hgl   # Epic / GOG
+        - net.davidotek.pupgui2         # ProtonUp-Qt: versiones de Proton y Wine
+        - com.github.tchx84.Flatseal    # permisos de Flatpak
+        - org.libreoffice.LibreOffice   # ofimática compatible con docx/xlsx/pptx
+        - org.videolan.VLC
+
+  # Scripts que se ejecutan durante la construcción de la imagen
+  - type: script
+    scripts:
+      - 00-marca.sh
+
+  # Firma de la imagen (necesita cosign.pub en la raíz del repo y el secreto SIGNING_SECRET)
+  - type: signing

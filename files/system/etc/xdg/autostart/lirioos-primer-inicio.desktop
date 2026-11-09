@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=LirioOS - configuración inicial
+Comment=Aplica el aspecto de LirioOS en el primer inicio de sesión
+Exec=/usr/share/lirioos/primer-inicio.sh
+Icon=lirioos-logo
+Terminal=false
+X-KDE-autostart-phase=2
